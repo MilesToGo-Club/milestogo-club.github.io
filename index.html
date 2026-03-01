@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strava Club Tracker - Multi-Athlete</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #fc5200;
+            --primary-dark: #d64400;
+            --secondary: #00d4ff;
+            --dark: #0a0e27;
+            --dark-elevated: #1a1f3a;
+            --dark-card: #252a45;
+            --text: #ffffff;
+            --text-secondary: #a0a5c0;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        .app {
+            min-height: 100vh;
+            background: 
+                radial-gradient(ellipse at top right, rgba(252, 82, 0, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom left, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+                var(--dark);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--dark-elevated) 0%, var(--dark-card) 100%);
+            padding: 2rem 0;
+            border-bottom: 2px solid rgba(252, 82, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--primary));
+            background-size: 200% 100%;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            letter-spacing: 0.1em;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            animation: fadeInDown 0.6s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 2px solid var(--text-secondary);
+            color: var(--text);
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+
+        .nav-btn.active {
+            border-color: var(--primary);
+            background: rgba(252, 82, 0, 0.1);
+            color: var(--primary);
+        }
+
+        .nav-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(252, 82, 0, 0.3);
+        }
+
+        .unit-toggle {
+            display: flex;
+            background: var(--dark-elevated);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .unit-toggle button {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .unit-toggle button.active {
+            background: var(--primary);
+            color: var(--text);
+        }
+
+        .main {
+            padding: 3rem 0;
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .setup-banner {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .setup-banner h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .setup-banner p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .athlete-input {
+            display: flex;
+            gap: 1rem;
+            max-width: 600px;
+            margin: 1rem auto 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .athlete-input input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .athlete-input input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .athlete-input input:focus {
+            outline: none;
+            border-color: var(--text);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .athletes-list {
+            background: var(--dark-card);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .athletes-list h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+        }
+
+        .athlete-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--dark-elevated);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .athlete-chip:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .athlete-chip.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .athlete-chip button {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            padding: 0 0.25rem;
+            font-size: 1.2rem;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .athlete-chip button:hover {
+            opacity: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(252, 82, 0, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-banner {
+            background: rgba(255, 51, 102, 0.1);
+            border: 2px solid var(--danger);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .error-banner h3 {
+            color: var(--danger);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: var(--dark-card);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease backwards;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+            border-color: rgba(252, 82, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            line-height: 1;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-subtext {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .section {
+            background: var(--dark-card);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            letter-spacing: 0.05em;
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            color: var(--text);
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(252, 82, 0, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .activities-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .activity-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--dark-elevated);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background: rgba(252, 82, 0, 0.1);
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .activity-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .activity-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .activity-stats {
+            text-align: right;
+        }
+
+        .activity-distance {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .activity-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.6rem 1.2rem;
+            background: var(--dark-elevated);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            font-family: 'Work Sans', sans-serif;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: var(--text);
+            border-color: var(--primary);
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .leaderboard-item {
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--dark-elevated);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            animation: slideInRight 0.5s ease backwards;
+        }
+
+        .leaderboard-item:nth-child(1) { animation-delay: 0.1s; }
+        .leaderboard-item:nth-child(2) { animation-delay: 0.15s; }
+        .leaderboard-item:nth-child(3) { animation-delay: 0.2s; }
+        .leaderboard-item:nth-child(4) { animation-delay: 0.25s; }
+        .leaderboard-item:nth-child(5) { animation-delay: 0.3s; }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .leaderboard-item:hover {
+            background: rgba(252, 82, 0, 0.1);
+            border-color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .rank {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .rank.gold {
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .rank.silver {
+            color: #c0c0c0;
+            text-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+        }
+
+        .rank.bronze {
+            color: #cd7f32;
+            text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+        }
+
+        .athlete-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .athlete-stats {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .athlete-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 2rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            .activity-item {
+                grid-template-columns: auto 1fr;
+            }
+
+            .activity-stats {
+                grid-column: 2;
+                text-align: left;
+                margin-top: 0.5rem;
+            }
+
+            .leaderboard-item {
+                grid-template-columns: 50px 1fr;
+            }
+
+            .athlete-value {
+                grid-column: 2;
+                text-align: right;
+                margin-top: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const API_BASE_URL = 'http://localhost:3000';
+
+        const App = () => {
+            const [activeView, setActiveView] = useState('leaderboard');
+            const [athletes, setAthletes] = useState([]);
+            const [inputAthleteId, setInputAthleteId] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [athletesData, setAthletesData] = useState({});
+            const [useImperial, setUseImperial] = useState(false);
+            const [timeFilter, setTimeFilter] = useState('month');
+
+            // Load athletes from localStorage
+            useEffect(() => {
+                const savedAthletes = localStorage.getItem('athletes');
+                const savedUnit = localStorage.getItem('useImperial');
+                if (savedAthletes) {
+                    setAthletes(JSON.parse(savedAthletes));
+                }
+                if (savedUnit !== null) {
+                    setUseImperial(savedUnit === 'true');
+                }
+            }, []);
+
+            // Save athletes to localStorage
+            useEffect(() => {
+                if (athletes.length > 0) {
+                    localStorage.setItem('athletes', JSON.stringify(athletes));
+                }
+            }, [athletes]);
+
+            // Save unit preference
+            useEffect(() => {
+                localStorage.setItem('useImperial', useImperial.toString());
+            }, [useImperial]);
+
+            // Fetch data for all athletes
+            useEffect(() => {
+                if (athletes.length > 0) {
+                    fetchAllAthletesData();
+                }
+            }, [athletes]);
+
+            const fetchAllAthletesData = async () => {
+                setLoading(true);
+                setError(null);
+                const newData = {};
+
+                for (const athleteId of athletes) {
+                    try {
+                        // Fetch athlete profile
+                        const profileRes = await fetch(`${API_BASE_URL}/api/athlete/${athleteId}`);
+                        if (!profileRes.ok) throw new Error(`Failed to fetch athlete ${athleteId}`);
+                        const profile = await profileRes.json();
+
+                        // Fetch activities
+                        const activitiesRes = await fetch(`${API_BASE_URL}/api/activities/${athleteId}?per_page=200`);
+                        if (!activitiesRes.ok) throw new Error(`Failed to fetch activities for ${athleteId}`);
+                        const activities = await activitiesRes.json();
+
+                        newData[athleteId] = {
+                            profile,
+                            activities
+                        };
+                    } catch (err) {
+                        console.error(`Error fetching data for athlete ${athleteId}:`, err);
+                    }
+                }
+
+                setAthletesData(newData);
+                setLoading(false);
+            };
+
+            const addAthlete = () => {
+                const id = inputAthleteId.trim();
+                if (id && !athletes.includes(id)) {
+                    setAthletes([...athletes, id]);
+                    setInputAthleteId('');
+                }
+            };
+
+            const removeAthlete = (id) => {
+                setAthletes(athletes.filter(a => a !== id));
+                const newData = { ...athletesData };
+                delete newData[id];
+                setAthletesData(newData);
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    addAthlete();
+                }
+            };
+
+            // Unit conversion functions
+            const convertDistance = (meters) => {
+                if (useImperial) {
+                    return (meters * 0.000621371).toFixed(2); // meters to miles
+                }
+                return (meters / 1000).toFixed(2); // meters to km
+            };
+
+            const convertElevation = (meters) => {
+                if (useImperial) {
+                    return (meters * 3.28084).toFixed(0); // meters to feet
+                }
+                return meters.toFixed(0); // keep as meters
+            };
+
+            const getDistanceUnit = () => useImperial ? 'mi' : 'km';
+            const getElevationUnit = () => useImperial ? 'ft' : 'm';
+
+            const getActivityIcon = (type) => {
+                const icons = {
+                    'Run': '🏃',
+                    'Ride': '🚴',
+                    'Swim': '🏊',
+                    'Walk': '🚶',
+                    'Hike': '🥾',
+                    'VirtualRide': '🚴',
+                    'VirtualRun': '🏃',
+                };
+                return icons[type] || '💪';
+            };
+
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays} days ago`;
+                return date.toLocaleDateString();
+            };
+
+            const formatDuration = (seconds) => {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                if (hours > 0) return `${hours}h ${minutes}m`;
+                return `${minutes}m`;
+            };
+
+            const getFilteredActivities = (activities) => {
+                const now = new Date();
+                return activities.filter(activity => {
+                    const activityDate = new Date(activity.start_date);
+                    
+                    switch (timeFilter) {
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            return activityDate >= weekAgo;
+                        case 'month':
+                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            return activityDate >= monthAgo;
+                        case 'year':
+                            return activityDate.getFullYear() === now.getFullYear();
+                        default:
+                            return true;
+                    }
+                });
+            };
+
+            const calculateLeaderboard = () => {
+                return athletes.map(athleteId => {
+                    const data = athletesData[athleteId];
+                    if (!data) return null;
+
+                    const filtered = getFilteredActivities(data.activities);
+                    
+                    return {
+                        athleteId,
+                        name: `${data.profile.firstname} ${data.profile.lastname}`,
+                        distance: filtered.reduce((sum, a) => sum + a.distance, 0),
+                        activities: filtered.length,
+                        elevation: filtered.reduce((sum, a) => sum + a.total_elevation_gain, 0),
+                        time: filtered.reduce((sum, a) => sum + a.moving_time, 0)
+                    };
+                }).filter(Boolean);
+            };
+
+            const exportToCSV = () => {
+                const leaderboard = calculateLeaderboard();
+                const headers = ['Rank', 'Name', `Distance (${getDistanceUnit()})`, 'Activities', `Elevation (${getElevationUnit()})`, 'Time (hours)'];
+                const rows = leaderboard
+                    .sort((a, b) => b.distance - a.distance)
+                    .map((athlete, index) => [
+                        index + 1,
+                        athlete.name,
+                        convertDistance(athlete.distance),
+                        athlete.activities,
+                        convertElevation(athlete.elevation),
+                        (athlete.time / 3600).toFixed(1)
+                    ]);
+
+                const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `strava-leaderboard-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+            };
+
+            if (athletes.length === 0) {
+                return (
+                    <div className="app">
+                        <header className="header">
+                            <div className="container">
+                                <div className="header-content">
+                                    <div className="logo">Club Tracker</div>
+                                </div>
+                            </div>
+                        </header>
+                        <main className="main">
+                            <div className="container">
+                                <div className="setup-banner">
+                                    <h2>Welcome to Strava Club Tracker</h2>
+                                    <p>Add athletes to start tracking your club's activities</p>
+                                    <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '1.5rem' }}>
+                                        Each member needs to authenticate first at{' '}
+                                        <a href={`${API_BASE_URL}/auth/strava`} style={{ color: 'white', textDecoration: 'underline' }}>
+                                            localhost:3000/auth/strava
+                                        </a>
+                                    </p>
+                                    <div className="athlete-input">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Athlete ID (e.g., 12345678)"
+                                            value={inputAthleteId}
+                                            onChange={(e) => setInputAthleteId(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                        />
+                                        <button className="btn" onClick={addAthlete}>
+                                            Add Athlete
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="setup-banner" style={{ background: 'var(--dark-card)', marginTop: '2rem' }}>
+                                    <h2 style={{ color: 'var(--primary)' }}>How to Add Club Members</h2>
+                                    <ol style={{ textAlign: 'left', maxWidth: '600px', margin: '0 auto', lineHeight: '1.8' }}>
+                                        <li>Each member visits: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>localhost:3000/auth/strava</code></li>
+                                        <li>They click "Authorize" to connect their Strava account</li>
+                                        <li>They'll see their <strong>Athlete ID</strong> on the success page</li>
+                                        <li>Add each member's Athlete ID above</li>
+                                        <li>View the leaderboard with all members' stats!</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </main>
+                    </div>
+                );
+            }
+
+            if (loading && Object.keys(athletesData).length === 0) {
+                return (
+                    <div className="app">
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <h2>Loading athlete data...</h2>
+                        </div>
+                    </div>
+                );
+            }
+
+            const leaderboard = calculateLeaderboard();
+            const sortedByDistance = [...leaderboard].sort((a, b) => b.distance - a.distance);
+            const totalStats = {
+                distance: leaderboard.reduce((sum, a) => sum + a.distance, 0),
+                activities: leaderboard.reduce((sum, a) => sum + a.activities, 0),
+                elevation: leaderboard.reduce((sum, a) => sum + a.elevation, 0),
+                time: leaderboard.reduce((sum, a) => sum + a.time, 0)
+            };
+
+            return (
+                <div className="app">
+                    <header className="header">
+                        <div className="container">
+                            <div className="header-content">
+                                <div className="logo">Club Tracker</div>
+                                <nav className="nav">
+                                    <button 
+                                        className={`nav-btn ${activeView === 'leaderboard' ? 'active' : ''}`}
+                                        onClick={() => setActiveView('leaderboard')}
+                                    >
+                                        Leaderboard
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${activeView === 'activities' ? 'active' : ''}`}
+                                        onClick={() => setActiveView('activities')}
+                                    >
+                                        All Activities
+                                    </button>
+                                    <button 
+                                        className={`nav-btn ${activeView === 'manage' ? 'active' : ''}`}
+                                        onClick={() => setActiveView('manage')}
+                                    >
+                                        Manage Athletes
+                                    </button>
+                                    <div className="unit-toggle">
+                                        <button 
+                                            className={!useImperial ? 'active' : ''}
+                                            onClick={() => setUseImperial(false)}
+                                        >
+                                            Metric
+                                        </button>
+                                        <button 
+                                            className={useImperial ? 'active' : ''}
+                                            onClick={() => setUseImperial(true)}
+                                        >
+                                            Imperial
+                                        </button>
+                                    </div>
+                                </nav>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="main">
+                        <div className="container">
+                            <div className="stats-grid">
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Distance</div>
+                                    <div className="stat-value">{convertDistance(totalStats.distance)}</div>
+                                    <div className="stat-subtext">{getDistanceUnit()}</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Activities</div>
+                                    <div className="stat-value">{totalStats.activities}</div>
+                                    <div className="stat-subtext">completed</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Elevation</div>
+                                    <div className="stat-value">{convertElevation(totalStats.elevation)}</div>
+                                    <div className="stat-subtext">{getElevationUnit()} gained</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Active Members</div>
+                                    <div className="stat-value">{athletes.length}</div>
+                                    <div className="stat-subtext">athletes</div>
+                                </div>
+                            </div>
+
+                            {activeView === 'leaderboard' && (
+                                <div className="section">
+                                    <div className="section-header">
+                                        <h2 className="section-title">Leaderboard</h2>
+                                        <button className="btn" onClick={exportToCSV}>
+                                            Export CSV
+                                        </button>
+                                    </div>
+
+                                    <div className="filter-bar">
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'week' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('week')}
+                                        >
+                                            This Week
+                                        </button>
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'month' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('month')}
+                                        >
+                                            This Month
+                                        </button>
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'year' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('year')}
+                                        >
+                                            This Year
+                                        </button>
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'all' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('all')}
+                                        >
+                                            All Time
+                                        </button>
+                                    </div>
+
+                                    <div className="leaderboard">
+                                        {sortedByDistance.map((athlete, index) => (
+                                            <div key={athlete.athleteId} className="leaderboard-item">
+                                                <div className={`rank ${index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : ''}`}>
+                                                    {index + 1}
+                                                </div>
+                                                <div className="athlete-info">
+                                                    <h3>{athlete.name}</h3>
+                                                    <div className="athlete-stats">
+                                                        {athlete.activities} activities • {convertElevation(athlete.elevation)}{getElevationUnit()} elevation
+                                                    </div>
+                                                </div>
+                                                <div className="athlete-value">
+                                                    {convertDistance(athlete.distance)} {getDistanceUnit()}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeView === 'activities' && (
+                                <div className="section">
+                                    <div className="section-header">
+                                        <h2 className="section-title">All Recent Activities</h2>
+                                    </div>
+
+                                    <div className="filter-bar">
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'week' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('week')}
+                                        >
+                                            This Week
+                                        </button>
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'month' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('month')}
+                                        >
+                                            This Month
+                                        </button>
+                                        <button 
+                                            className={`filter-btn ${timeFilter === 'year' ? 'active' : ''}`}
+                                            onClick={() => setTimeFilter('year')}
+                                        >
+                                            This Year
+                                        </button>
+                                    </div>
+
+                                    <div className="activities-list">
+                                        {athletes.flatMap(athleteId => {
+                                            const data = athletesData[athleteId];
+                                            if (!data) return [];
+                                            
+                                            return getFilteredActivities(data.activities).map(activity => ({
+                                                ...activity,
+                                                athleteName: `${data.profile.firstname} ${data.profile.lastname}`
+                                            }));
+                                        })
+                                        .sort((a, b) => new Date(b.start_date) - new Date(a.start_date))
+                                        .slice(0, 30)
+                                        .map((activity) => (
+                                            <div key={`${activity.id}-${activity.athleteName}`} className="activity-item">
+                                                <div className="activity-icon">
+                                                    {getActivityIcon(activity.type)}
+                                                </div>
+                                                <div className="activity-info">
+                                                    <h3>{activity.name}</h3>
+                                                    <div className="activity-details">
+                                                        {activity.athleteName} • {activity.type} • {formatDuration(activity.moving_time)}
+                                                    </div>
+                                                </div>
+                                                <div className="activity-stats">
+                                                    <div className="activity-distance">
+                                                        {convertDistance(activity.distance)} {getDistanceUnit()}
+                                                    </div>
+                                                    <div className="activity-date">{formatDate(activity.start_date)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeView === 'manage' && (
+                                <div className="section">
+                                    <div className="section-header">
+                                        <h2 className="section-title">Manage Athletes</h2>
+                                    </div>
+
+                                    <div className="athlete-input" style={{ maxWidth: '100%', margin: '0 0 2rem 0', justifyContent: 'flex-start' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Athlete ID"
+                                            value={inputAthleteId}
+                                            onChange={(e) => setInputAthleteId(e.target.value)}
+                                            onKeyPress={handleKeyPress}
+                                        />
+                                        <button className="btn" onClick={addAthlete}>
+                                            Add Athlete
+                                        </button>
+                                    </div>
+
+                                    <div className="athletes-list">
+                                        <h3>Current Athletes ({athletes.length})</h3>
+                                        <div>
+                                            {athletes.map(athleteId => {
+                                                const data = athletesData[athleteId];
+                                                return (
+                                                    <div key={athleteId} className="athlete-chip">
+                                                        <span>
+                                                            {data ? `${data.profile.firstname} ${data.profile.lastname}` : `ID: ${athleteId}`}
+                                                        </span>
+                                                        <button onClick={() => removeAthlete(athleteId)} title="Remove athlete">
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--dark-elevated)', borderRadius: '8px' }}>
+                                        <h3 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>How to Add New Members</h3>
+                                        <ol style={{ lineHeight: '1.8', paddingLeft: '1.5rem' }}>
+                                            <li>Have the member visit: <code style={{ background: 'rgba(0,0,0,0.3)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>localhost:3000/auth/strava</code></li>
+                                            <li>They authorize the app with their Strava account</li>
+                                            <li>They'll receive their Athlete ID on the success page</li>
+                                            <li>Add their Athlete ID using the form above</li>
+                                            <li>Their data will automatically load!</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
