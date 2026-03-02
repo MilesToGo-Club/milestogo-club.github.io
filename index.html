@@ -673,8 +673,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const API_BASE_URL = 'http://localhost:3000';
-
+        // const API_BASE_URL = 'http://localhost:3000';
+        const API_BASE_URL = 'https://milestogo-club-tracker-production.up.railway.app';
+        
         const App = () => {
             const [activeView, setActiveView] = useState('leaderboard');
             const [athletes, setAthletes] = useState([]);
